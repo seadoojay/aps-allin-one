@@ -1,4 +1,4 @@
-version: "0.1"
+version: "2.0"
 services:
   process:
     image: alfresco/process-services:1.10.0
@@ -49,7 +49,7 @@ services:
       ACTIVITI_ADMIN_REST_APP_USERNAME: admin@app.activiti.com
       ACTIVITI_ADMIN_REST_APP_PASSWORD: admin
     ports:
-      -8080:8080
+      - 8080:8080
     links:
       - process:process
     depends_on:
