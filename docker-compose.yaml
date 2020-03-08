@@ -10,9 +10,14 @@ services:
       ACTIVITI_DATASOURCE_URL: 'jdbc:postgresql://postgres:5432/activiti?characterEncoding=UTF-8'
       ACTIVITI_CSRF_DISABLED: 'true'
       ACTIVITI_CORS_ENABLED: 'true'
-      ACTIVITI_ES_SERVER_TYPE: client
-      ACTIVITI_ES_DISCOVERY_HOSTS: elasticsearch:9300
-      ACTIVITI_ES_CLUSTER_NAME: elasticsearch
+#      ACTIVITI_ES_SERVER_TYPE: client
+#      ACTIVITI_ES_DISCOVERY_HOSTS: elasticsearch:9300
+#      ACTIVITI_ES_CLUSTER_NAME: elasticsearch
+      ACTIVITI_ES_SERVER_TYPE: rest
+      ACTIVITI_ES_REST_CLIENT_ADDRESS: elasticsearch 
+      ACTIVITI_ES_REST_CLIENT_PORT: 9200
+      ACTIVITI_ES_REST_CLIENT_SCHEMA: http
+      ACTIVITI_ES_REST_CLIENT_AUTH_ENABLED: "false"
     volumes:
       - "~/.activiti/enterprise-license:/root/.activiti/enterprise-license/:ro"
       - ./activiti-app.properties:/usr/share/tomcat/lib/activiti-app.properties
@@ -26,9 +31,29 @@ services:
     depends_on:
       - elasticsearch
       - postgres
- 
+    logging:
+      driver: gcplogs
+
   elasticsearch:
-    image: elasticsearch:1.7.3
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.1
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=elasticsearch
+      - cluster.initial_master_nodes=elasticsearch
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    logging:
+      driver: gcplogs
+
  
   postgres:
     image: postgres:9.6.2
@@ -38,11 +63,13 @@ services:
       POSTGRES_PASSWORD: alfresco
     volumes:
       - ./pgdata:/var/lib/postgresql/data
+    logging:
+      driver: gcplogs
 
   activitiadmin:
     image: alfresco/process-services-admin:1.10.0
     environment:
-      ACTIVITI_ADMIN_DATASOURCE_DRIVER: org.h2.Driver
+      ACTIVITI_ADMIN_DATASOURCE_DRIVER: org.h2.Driver 
       ACTIVITI_ADMIN_HIBERNATE_DIALECT: org.hibernate.dialect.H2Dialect
       ACTIVITI_ADMIN_REST_APP_HOST: process
       ACTIVITI_ADMIN_REST_APP_PORT: 80
@@ -54,3 +81,22 @@ services:
       - process:process
     depends_on:
       - process 
+    logging:
+      driver: gcplogs
+
+  kib01:
+    image: docker.elastic.co/kibana/kibana:7.6.1
+    container_name: kib01
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    logging:
+      driver: gcplogs
+
+volumes:
+  data01:
+    driver: local
